@@ -16,6 +16,8 @@ void Listener::Listen(int port) {
     addr_.sin_family = AF_INET;
     addr_.sin_port = ::htons(port);
     addr_.sin_addr.s_addr = INADDR_ANY;
+    socklen_t optval = 1;
+    ::setsockopt(fd_, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof optval);
     int ret = ::bind(fd_, (sockaddr*)&addr_, sizeof addr_);
     if(ret == -1) {
         perror("bind");
@@ -39,6 +41,9 @@ int Listener::Accept() {
             perror("accept");
             exit(0);
         }
-    } 
+    } else {
+        int option = ::fcntl(connfd, F_GETFL);
+        ::fcntl(connfd, F_SETFL, option | O_NONBLOCK);
+    }
     return connfd;
 }

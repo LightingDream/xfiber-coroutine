@@ -23,7 +23,7 @@ private:
 
 class Fiber {
 public:
-    Fiber(std::function<void()> run, XFiber * xfiber);
+    Fiber(std::function<void()> run, XFiber * xfiber, int stack_size = 4096);
     ~Fiber();
     ucontext_t * getCtx() { return &ctx_;}
     bool IsFinished() const {
@@ -38,4 +38,6 @@ private:
     std::function<void()> run_;
     ucontext_t ctx_;
     Status status_;
+    ssize_t stack_size_;
+    char * stack_;
 };

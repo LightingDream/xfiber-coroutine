@@ -2,14 +2,13 @@
 #include <iostream>
 
 XFiber::XFiber() {
-    ready_fibers_.clear();
-    running_fibers_.clear();
     cur_fiber_ = nullptr;
     getcontext(&ctx_);
 }
 
 XFiber::~XFiber() {
-
+    ready_fibers_.clear();
+    running_fibers_.clear();
 }
 
 void XFiber::CreateFiber(std::function<void()> run) {
@@ -46,14 +45,16 @@ void Fiber::Start(Fiber * fiber) {
 }
 
 Fiber::~Fiber(){
-    free(ctx_.uc_stack.ss_sp);
+    delete stack_;
 }
 
-Fiber::Fiber(std::function<void()> run, XFiber * xfiber) {
+Fiber::Fiber(std::function<void()> run, XFiber * xfiber, int stack_size) {
     run_ = run;
     getcontext(&ctx_);
-    ctx_.uc_stack.ss_sp = new char[4096];
-    ctx_.uc_stack.ss_size = 4096;
+    stack_size_ = stack_size;
+    stack_ = new char[stack_size];
+    ctx_.uc_stack.ss_sp = stack_;
+    ctx_.uc_stack.ss_size = stack_size_;
     ctx_.uc_link = xfiber->getCtx();
     status_ = Running;
     makecontext(&ctx_, (void(*)())(Fiber::Start), 1, this);

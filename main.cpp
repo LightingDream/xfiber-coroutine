@@ -33,6 +33,14 @@ int main(int, char**) {
                 while(true) {
                     sleep(2);
                     int len = ::read(connfd, buf, 1024);
+                    if(len == -1) {
+                        if(errno == EAGAIN) continue;
+                        else {
+                            perror("read");
+                            exit(0);
+                        }
+                    }
+                    if(len == 0) continue;
                     std::cout << "read : " << buf << std::endl;
                     ::write(connfd, buf, strlen(buf));
                     ::bzero(buf, sizeof buf);
