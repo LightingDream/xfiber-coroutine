@@ -3,6 +3,8 @@
 #include <list>
 #include <functional>
 #include <ucontext.h>
+#include <map>
+#include <fcntl.h>
 
 class Fiber;
 
@@ -14,7 +16,21 @@ public:
     void CreateFiber(std::function<void()> run);
     void Dispatch();
     void Yield();
+    void RegisterFdToScheduler(int fd, bool is_write);
+    void UnregisterFdFromScheduler(int fd);
+    void SwitchToScheduler();
+    static XFiber * GetInstance () {
+        static thread_local XFiber xFiber;
+        return & xFiber;
+    }
 private:
+    struct IoWaitingFiber{
+        Fiber * w_;
+        Fiber * r_;
+    };
+
+    int epfd_;
+    std::map<int, IoWaitingFiber> io_waiting_fibers_;
     std::list<Fiber * > ready_fibers_;    //
     std::list<Fiber * > running_fibers_;  //
     Fiber * cur_fiber_;

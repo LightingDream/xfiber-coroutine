@@ -6,49 +6,33 @@
 #include <iostream>
 
 int main(int, char**) {
-    XFiber xfiber;
-    // xfiber.CreateFiber([&]{
-    //     std::cout << "I am coroutine A" << std::endl;
-    //     std::cout << "I am coroutine A" << std::endl;
-    //     xfiber.Yield();
-    //     std::cout << "I am coroutine A" << std::endl;
-    //     std::cout << "I am coroutine A" << std::endl;
-    // });
-    // xfiber.CreateFiber([&]{
-    //     std::cout << "I am coroutine B" << std::endl;
-    //     std::cout << "I am coroutine B" << std::endl;
-    //     xfiber.Yield();
-    //     std::cout << "I am coroutine B" << std::endl;
-    //     std::cout << "I am coroutine B" << std::endl;
-    // });
-    xfiber.CreateFiber([&]{
+    XFiber * xfiber = XFiber::GetInstance();
+    xfiber->CreateFiber([&]{
         Listener listener;
         listener.Listen(8888);
         while(true) {
-            // sleep(2);
             int connfd = listener.Accept();
-            if(connfd <= 0) continue;
-            xfiber.CreateFiber([&]{
+            if(connfd < 0) continue;
+            Connection conn(connfd);
+            xfiber->CreateFiber([&]{
                 char buf[1024] = {0};
-                while(true) {
-                    sleep(2);
-                    int len = ::read(connfd, buf, 1024);
-                    if(len == -1) {
-                        if(errno == EAGAIN) continue;
-                        else {
-                            perror("read");
-                            exit(0);
-                        }
+                // while(true) {
+                    int res = conn.Read(buf, 1024);
+                    if(res <= 0) {
+                        conn.Close();
+                        return;
                     }
-                    if(len == 0) continue;
-                    std::cout << "read : " << buf << std::endl;
-                    ::write(connfd, buf, strlen(buf));
+                    std::cout << "recv : " << buf << std::endl;
+                    if(conn.Write(buf, strlen(buf)) <= 0) {
+                        conn.Close();
+                        return;
+                    }
                     ::bzero(buf, sizeof buf);
-                }
+                    
+                // }
             });
-            xfiber.Yield();
         }
     });
-    xfiber.Dispatch();
+    xfiber->Dispatch();
     return 0;
 }
